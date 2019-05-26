@@ -56,6 +56,10 @@ tcp = ["tokio-tcp"]
 timer = ["tokio-timer"]
 udp = ["tokio-udp"]
 uds = ["tokio-uds"]
+async-await-preview = [
+  "tokio-futures/async-await-preview",
+  "tokio-macros/async-await-preview"
+]
 
 [dependencies]
 # Only non-optional dependency...
