@@ -18,22 +18,26 @@ use std::net::Shutdown;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+use std::sync::Arc;
+
 /// Read half of a `TcpStream`.
 #[derive(Debug)]
-pub struct ReadHalf<'a>(&'a TcpStream);
+pub struct ReadHalf(Arc<TcpStream>);
 
 /// Write half of a `TcpStream`.
 ///
 /// Note that in the `AsyncWrite` implemenation of `TcpStreamWriteHalf`,
 /// `poll_shutdown` actually shuts down the TCP stream in the write direction.
 #[derive(Debug)]
-pub struct WriteHalf<'a>(&'a TcpStream);
+pub struct WriteHalf(Arc<TcpStream>);
 
-pub(crate) fn split(stream: &mut TcpStream) -> (ReadHalf<'_>, WriteHalf<'_>) {
-    (ReadHalf(&*stream), WriteHalf(&*stream))
+pub(crate) fn split(stream: TcpStream) -> (ReadHalf, WriteHalf) {
+    let stream = Arc::new(stream);
+    let stream2 = Arc::clone(&stream);
+    (ReadHalf(stream), WriteHalf(stream2))
 }
 
-impl AsyncRead for ReadHalf<'_> {
+impl AsyncRead for ReadHalf {
     unsafe fn prepare_uninitialized_buffer(&self, _: &mut [u8]) -> bool {
         false
     }
@@ -55,7 +59,7 @@ impl AsyncRead for ReadHalf<'_> {
     }
 }
 
-impl AsyncWrite for WriteHalf<'_> {
+impl AsyncWrite for WriteHalf {
     fn poll_write(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -84,14 +88,14 @@ impl AsyncWrite for WriteHalf<'_> {
     }
 }
 
-impl AsRef<TcpStream> for ReadHalf<'_> {
+impl AsRef<TcpStream> for ReadHalf {
     fn as_ref(&self) -> &TcpStream {
-        self.0
+        self.0.as_ref()
     }
 }
 
-impl AsRef<TcpStream> for WriteHalf<'_> {
+impl AsRef<TcpStream> for WriteHalf {
     fn as_ref(&self) -> &TcpStream {
-        self.0
+        self.0.as_ref()
     }
 }
